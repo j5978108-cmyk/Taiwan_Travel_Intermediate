@@ -3,376 +3,406 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台灣大富翁 - 環島冒險</title>
+    <title>台灣旅遊大富翁 - 語文教室對抗賽</title>
     <style>
         :root {
-            --p1-color: #ff5252;
-            --p2-color: #448aff;
-            --p3-color: #4caf50;
-            --p4-color: #ffc107;
-            --bg-color: #f0f2f5;
-            --tile-size: 80px;
+            --primary-green: #2e7d32;
+            --accent-orange: #f57c00;
+            --bg-color: #e8f5e9;
+            --tile-size: 110px;
         }
 
         body {
-            font-family: "Microsoft JhengHei", sans-serif;
+            font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
             background-color: var(--bg-color);
+            margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0;
-            padding: 20px;
+            min-height: 100vh;
         }
 
-        h1 { color: #333; margin-bottom: 10px; }
+        /* 標題與標籤 */
+        header {
+            text-align: center;
+            padding: 15px;
+            color: var(--primary-green);
+        }
 
-        /* 遊戲棋盤佈局 - 使用 Grid 製作 5x5 矩陣 */
+        /* 棋盤佈局 6x6 (共 20 格) */
         #game-board {
             display: grid;
-            grid-template-columns: repeat(5, var(--tile-size));
-            grid-template-rows: repeat(5, var(--tile-size));
-            gap: 4px;
-            background-color: #ccc;
-            border: 8px solid #444;
-            border-radius: 8px;
+            grid-template-columns: repeat(6, var(--tile-size));
+            grid-template-rows: repeat(6, var(--tile-size));
+            gap: 6px;
+            background-color: #ffffff;
+            padding: 10px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             position: relative;
+            margin-bottom: 20px;
         }
 
-        /* 格子樣式 */
+        /* 格子基礎樣式 */
         .tile {
-            background-color: white;
-            border: 1px solid #ddd;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px;
+            font-size: 13px;
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .tile:hover { transform: scale(1.02); z-index: 5; }
+        
+        /* 格子類型顏色 */
+        .city { border-top: 6px solid #4fc3f7; }
+        .practice { border-top: 6px solid #ffb74d; background: #fff8e1; }
+        .chance { border-top: 6px solid #f06292; background: #fce4ec; }
+        .special { background: #cfd8dc; font-weight: bold; }
+
+        .tile img { width: 100%; height: 50px; object-fit: cover; border-radius: 4px; }
+        .tile-name { font-weight: bold; margin-top: 4px; color: #333; }
+
+        /* 中間控制區域 */
+        #control-center {
+            grid-column: 2 / 6;
+            grid-row: 2 / 6;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
-            position: relative;
-            padding: 5px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 10px;
+            padding: 20px;
             text-align: center;
         }
 
-        .tile .price { color: #e91e63; font-weight: bold; }
-        .corner { background-color: #f9f9f9; font-weight: bold; }
-
-        /* 中間控制區域 */
-        #center-panel {
-            grid-column: 2 / 5;
-            grid-row: 2 / 5;
-            background-color: white;
+        /* 玩家棋子 (旅遊小巴士) */
+        .bus {
+            width: 32px;
+            height: 32px;
+            position: absolute;
+            z-index: 100;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 24px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 10px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
-
-        /* 玩家棋子樣 style */
-        .piece {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            position: absolute;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-
-        /* 狀態看板 */
-        #status-board {
-            margin-top: 20px;
-            display: flex;
-            gap: 15px;
-        }
-
-        .player-card {
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            width: 120px;
-            border-bottom: 5px solid gray;
-        }
-
-        .active { transform: translateY(-10px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
 
         /* 按鈕樣式 */
-        button {
-            padding: 12px 24px;
+        .btn {
+            padding: 12px 25px;
             font-size: 18px;
             cursor: pointer;
-            background-color: #4caf50;
+            background: var(--primary-green);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 50px;
+            box-shadow: 0 4px 0 #1b5e20;
+            margin: 10px;
         }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #1b5e20; }
+        .btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
 
-        /* 彈窗樣式 */
+        /* 側邊狀態欄 */
+        #status-panel {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .team-card {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border-left: 10px solid #ccc;
+            min-width: 100px;
+        }
+        .team-card.active { border-bottom: 5px solid var(--accent-orange); transform: translateY(-5px); }
+
+        /* 任務彈窗 */
         #modal-overlay {
             position: fixed;
             top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 100;
+            z-index: 1000;
         }
         #modal {
             background: white;
             padding: 30px;
-            border-radius: 10px;
-            max-width: 400px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
             text-align: center;
+            box-shadow: 0 0 30px rgba(255,255,255,0.2);
+        }
+        .modal-btns { display: flex; justify-content: space-around; margin-top: 20px; }
+        .btn-correct { background: #4caf50; }
+        .btn-wrong { background: #f44336; }
+
+        /* 響應式微調 */
+        @media (max-height: 800px) {
+            :root { --tile-size: 90px; }
         }
     </style>
 </head>
 <body>
 
-    <h1>🇹🇼 台灣環島大富翁</h1>
+<header>
+    <h1>🚌 台灣語文旅遊大冒險</h1>
+    <p>中級語文課 · 團隊競賽版</p>
+</header>
 
-    <div id="game-board">
-        <div id="center-panel">
-            <div id="current-info">準備開始...</div>
-            <h2 id="dice-result">🎲</h2>
-            <button id="roll-btn">擲骰子</button>
-        </div>
+<div id="status-panel"></div>
+
+<div id="game-board">
+    <div id="control-center">
+        <h3 id="turn-display">第一組準備出發</h3>
+        <div id="dice-display" style="font-size: 50px; margin: 10px;">🎲</div>
+        <button class="btn" id="roll-btn">擲骰子前進</button>
+        <button class="btn" style="background:#777; font-size: 12px; box-shadow: none;" id="reset-btn">重設遊戲</button>
     </div>
+</div>
 
-    <div id="status-board"></div>
-
-    <div id="modal-overlay">
-        <div id="modal">
-            <h2 id="modal-title">標題</h2>
-            <p id="modal-content">內容</p>
-            <button onclick="closeModal()">確定</button>
-        </div>
+<div id="modal-overlay">
+    <div id="modal">
+        <h2 id="modal-title">任務挑戰</h2>
+        <div id="modal-image"></div>
+        <p id="modal-desc" style="font-size: 18px; line-height: 1.6;"></p>
+        <div class="modal-btns" id="action-btns">
+            </div>
     </div>
+</div>
 
 <script>
 /**
- * 💡 中級學習重點：
- * 1. 使用 Class 管理物件狀態
- * 2. 使用 Async/Await 處理位移動畫
- * 3. 陣列索引與環狀地圖邏輯
+ * 💡 教學設計邏輯：
+ * 1. 20格循環，第一位跨越/抵達起點者獲勝。
+ * 2. 操練格：答錯會由程式執行「回退動畫」。
+ * 3. 狀態儲存：利用 localStorage 防止教學中斷。
  */
 
-const INITIAL_MONEY = 6000;
-const GO_BONUS = 2000;
-
-// 定義地圖資料 (16 格)
-const TILES_DATA = [
-    { name: "起點", type: "special", emoji: "🏁" },
-    { name: "台北", type: "city", price: 2500, emoji: "🏛️" },
-    { name: "桃園", type: "city", price: 1500, emoji: "✈️" },
-    { name: "新竹", type: "city", price: 1200, emoji: "🔬" },
-    { name: "休息站", type: "special", emoji: "☕" }, // 角落 
-    { name: "台中", type: "city", price: 2000, emoji: "🥤" },
-    { name: "彰化", type: "city", price: 1000, emoji: "🕍" },
-    { name: "嘉義", type: "city", price: 1000, emoji: "🍗" },
-    { name: "機會命運", type: "chance", emoji: "❓" }, // 角落
-    { name: "台南", type: "city", price: 1800, emoji: "🧱" },
-    { name: "高雄", type: "city", price: 2200, emoji: "⚓" },
-    { name: "屏東", type: "city", price: 1200, emoji: "☀️" },
-    { name: "所得稅", type: "tax", emoji: "💸" }, // 角落
-    { name: "台東", type: "city", price: 1000, emoji: "🎈" },
-    { name: "花蓮", type: "city", price: 1200, emoji: "🌊" },
-    { name: "宜蘭", type: "city", price: 1200, emoji: "♨️" }
+const TILE_COUNT = 20;
+const TEAMS = [
+    { id: 0, name: "第一組", icon: "🚌", color: "#ff5252" },
+    { id: 1, name: "第二組", icon: "🚐", color: "#448aff" },
+    { id: 2, name: "第三組", icon: "🚓", color: "#4caf50" },
+    { id: 3, name: "第四組", icon: "🚜", color: "#ffc107" }
 ];
 
-const CHANCE_EVENTS = [
-    { text: "發票中獎啦！領取 1000 元。", amount: 1000 },
-    { text: "路邊違規停車被拖吊，罰款 800 元。", amount: -800 },
-    { text: "外送點到雷，心情不好去看醫生花 500 元。", amount: -500 },
-    { text: "恭喜成為全聯第 100 萬位顧客，獎金 1500 元。", amount: 1500 },
-    { text: "參與大甲媽祖遶境，平安就是福，捐獻 600 元。", amount: -600 }
+const BOARD_DATA = [
+    { name: "起點", type: "special", emoji: "🏁", info: "繞台灣一圈吧！" },
+    { name: "台北", type: "city", img: "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?auto=format&fit=crop&w=200", info: "101大樓是著名地標。" },
+    { name: "語法操練", type: "practice", info: "請用「不但...而且...」造句。" },
+    { name: "桃園", type: "city", img: "https://images.unsplash.com/photo-1570654639102-bdd95eeece7a?auto=format&fit=crop&w=200", info: "桃園機場是台灣的門戶。" },
+    { name: "機會卡", type: "chance", info: "抽取一張驚喜卡！" },
+    { name: "新竹", type: "city", img: "https://images.unsplash.com/photo-1571406451730-804193613098?auto=format&fit=crop&w=200", info: "台灣的矽谷，科學園區所在地。" },
+    { name: "語法操練", type: "practice", info: "請用「既然...就...」造句。" },
+    { name: "台中", type: "city", img: "https://images.unsplash.com/photo-159981881ef80-77a8286c8f92?auto=format&fit=crop&w=200", info: "珍珠奶茶的發源地！" },
+    { name: "挑戰格", type: "chance", info: "全組大聲朗讀課文一段，失敗退一格。" },
+    { name: "嘉義", type: "city", img: "https://images.unsplash.com/photo-1621929747188-0b4dc284980c?auto=format&fit=crop&w=200", info: "阿里山森林鐵路非常壯觀。" },
+    { name: "中途休息", type: "special", emoji: "🍱", info: "吃個鐵路便當再出發。" },
+    { name: "台南", type: "city", img: "https://images.unsplash.com/photo-1594132038755-d41c19be36e1?auto=format&fit=crop&w=200", info: "美食之都，古蹟非常多。" },
+    { name: "語法操練", type: "practice", info: "請用「除非...才...」造句。" },
+    { name: "高雄", type: "city", img: "https://images.unsplash.com/photo-1552057774-60b665679951?auto=format&fit=crop&w=200", info: "美麗的海港城市，愛河很浪漫。" },
+    { name: "機會卡", type: "chance", info: "抽取一張驚喜卡！" },
+    { name: "台東", type: "city", img: "https://images.unsplash.com/photo-1580665910386-8d1976a4455f?auto=format&fit=crop&w=200", info: "每年夏天有熱氣球嘉年華。" },
+    { name: "語法操練", type: "practice", info: "請用「與其...不如...」造句。" },
+    { name: "花蓮", type: "city", img: "https://images.unsplash.com/photo-1584981442475-430c51121857?auto=format&fit=crop&w=200", info: "太魯閣國家公園鬼斧神工。" },
+    { name: "挑戰格", type: "chance", info: "抽取生詞卡，解釋三個詞彙。" },
+    { name: "宜蘭", type: "city", img: "https://images.unsplash.com/photo-1628082601955-f7734a7ed27b?auto=format&fit=crop&w=200", info: "蔥餅跟溫泉是宜蘭的名產。" }
 ];
 
-class Player {
-    constructor(id, name, color) {
-        this.id = id;
-        this.name = name;
-        this.color = color;
-        this.money = INITIAL_MONEY;
-        this.position = 0; // 目前在第幾格
-        this.properties = []; // 擁有的土地索引
-        this.isBankrupt = false;
-    }
-}
-
-// 遊戲控制器
-class GameController {
+class TravelGame {
     constructor() {
-        this.players = [
-            new Player(0, "玩家紅", "var(--p1-color)"),
-            new Player(1, "玩家藍", "var(--p2-color)"),
-            new Player(2, "玩家綠", "var(--p3-color)"),
-            new Player(3, "玩家黃", "var(--p4-color)")
-        ];
-        this.currentPlayerIdx = 0;
-        this.tiles = TILES_DATA;
-        this.ownership = Array(16).fill(null); // 記錄誰買了地
-        this.isMoving = false;
-        
-        this.initBoard();
-        this.updateUI();
+        this.loadState();
+        this.initUI();
     }
 
-    initBoard() {
+    loadState() {
+        const saved = localStorage.getItem('taiwanGame');
+        if (saved) {
+            const data = JSON.parse(saved);
+            this.teamPos = data.teamPos;
+            this.currentTeamIdx = data.currentTeamIdx;
+        } else {
+            this.teamPos = [0, 0, 0, 0];
+            this.currentTeamIdx = 0;
+        }
+    }
+
+    saveState() {
+        localStorage.setItem('taiwanGame', JSON.stringify({
+            teamPos: this.teamPos,
+            currentTeamIdx: this.currentTeamIdx
+        }));
+    }
+
+    initUI() {
         const board = document.getElementById('game-board');
-        // 依照 Grid 位置排列 16 格 (5x5 邊緣)
-        const gridMapping = [
-            "5/1","4/1","3/1","2/1", // 左側上
-            "1/1","1/2","1/3","1/4", // 上側右
-            "1/5","2/5","3/5","4/5", // 右側下
-            "5/5","5/4","5/3","5/2"  // 下側左
+        const gridPos = [
+            "6/1", "5/1", "4/1", "3/1", "2/1", "1/1", 
+            "1/2", "1/3", "1/4", "1/5", "1/6", 
+            "2/6", "3/6", "4/6", "5/6", "6/6",
+            "6/5", "6/4", "6/3", "6/2"
         ];
 
-        this.tiles.forEach((data, i) => {
-            const tileDiv = document.createElement('div');
-            tileDiv.className = 'tile';
-            tileDiv.id = `tile-${i}`;
-            tileDiv.style.gridArea = gridMapping[i];
-            tileDiv.innerHTML = `
-                <div>${data.emoji}</div>
-                <div><b>${data.name}</b></div>
-                ${data.price ? `<div class="price">$${data.price}</div>` : ''}
-                <div id="owner-${i}" style="font-size:10px; color:gray"></div>
+        BOARD_DATA.forEach((data, i) => {
+            const tile = document.createElement('div');
+            tile.className = `tile ${data.type}`;
+            tile.style.gridArea = gridPos[i];
+            tile.id = `tile-${i}`;
+            tile.innerHTML = `
+                ${data.img ? `<img src="${data.img}">` : `<div style="font-size:30px">${data.emoji || '📝'}</div>`}
+                <div class="tile-name">${data.name}</div>
+                <div style="font-size:10px; color:#666">${data.info}</div>
             `;
-            board.appendChild(tileDiv);
+            board.appendChild(tile);
         });
 
-        // 初始化棋子
-        this.players.forEach(p => {
-            const piece = document.createElement('div');
-            piece.className = 'piece';
-            piece.id = `piece-${p.id}`;
-            piece.style.backgroundColor = p.color;
-            board.appendChild(piece);
+        TEAMS.forEach(team => {
+            const bus = document.createElement('div');
+            bus.className = 'bus';
+            bus.id = `bus-${team.id}`;
+            bus.innerText = team.icon;
+            board.appendChild(bus);
         });
-        this.positionPieces();
+
+        this.updateStatus();
+        this.positionBuses();
     }
 
-    // 將棋子定位到正確座標
-    positionPieces() {
-        this.players.forEach(p => {
-            const tile = document.getElementById(`tile-${p.position}`);
-            const piece = document.getElementById(`piece-${p.id}`);
-            // 簡單偏移避免棋子重疊
-            const offset = (p.id * 5) - 10;
-            piece.style.left = (tile.offsetLeft + 30 + offset) + 'px';
-            piece.style.top = (tile.offsetTop + 30 + offset) + 'px';
+    positionBuses() {
+        this.teamPos.forEach((pos, id) => {
+            const tile = document.getElementById(`tile-${pos}`);
+            const bus = document.getElementById(`bus-${id}`);
+            const offset = (id * 8) - 15;
+            bus.style.left = (tile.offsetLeft + 40 + offset) + 'px';
+            bus.style.top = (tile.offsetTop + 40 + offset) + 'px';
         });
     }
 
-    async rollDice() {
-        if (this.isMoving) return;
-        this.isMoving = true;
+    updateStatus() {
+        const panel = document.getElementById('status-panel');
+        panel.innerHTML = '';
+        TEAMS.forEach((team, i) => {
+            const card = document.createElement('div');
+            card.className = `team-card ${i === this.currentTeamIdx ? 'active' : ''}`;
+            card.style.borderLeftColor = team.color;
+            card.innerHTML = `<b>${team.name}</b><br>位置: ${BOARD_DATA[this.teamPos[i]].name}`;
+            panel.appendChild(card);
+        });
+        document.getElementById('turn-display').innerText = `現在輪到：${TEAMS[this.currentTeamIdx].name}`;
+        this.saveState();
+    }
+
+    async roll() {
         const btn = document.getElementById('roll-btn');
         btn.disabled = true;
+        const roll = Math.floor(Math.random() * 6) + 1;
+        document.getElementById('dice-display').innerText = "🎲 " + roll;
 
-        const steps = Math.floor(Math.random() * 6) + 1;
-        document.getElementById('dice-result').innerText = "🎲 " + steps;
-        
-        const player = this.players[this.currentPlayerIdx];
+        const oldPos = this.teamPos[this.currentTeamIdx];
+        let newPos = oldPos;
 
-        // 模擬一步一步走
-        for (let i = 0; i < steps; i++) {
-            player.position = (player.position + 1) % 16;
-            if (player.position === 0) {
-                player.money += GO_BONUS;
-                this.updateUI();
+        for (let i = 0; i < roll; i++) {
+            newPos++;
+            if (newPos >= TILE_COUNT) {
+                this.victory(TEAMS[this.currentTeamIdx]);
+                newPos = 0;
             }
-            this.positionPieces();
-            await new Promise(r => setTimeout(r, 250)); // 移動動畫延遲
+            this.teamPos[this.currentTeamIdx] = newPos;
+            this.positionBuses();
+            await new Promise(r => setTimeout(r, 300));
         }
 
-        this.handleLand(player);
+        this.handleLanding(oldPos, newPos);
     }
 
-    handleLand(player) {
-        const pos = player.position;
-        const tile = this.tiles[pos];
-        const ownerIdx = this.ownership[pos];
+    handleLanding(oldPos, newPos) {
+        const tile = BOARD_DATA[newPos];
+        const modal = document.getElementById('modal-overlay');
+        const title = document.getElementById('modal-title');
+        const desc = document.getElementById('modal-desc');
+        const actionArea = document.getElementById('action-btns');
+        actionArea.innerHTML = '';
 
-        if (tile.type === "city") {
-            if (ownerIdx === null) {
-                // 買地邏輯
-                if (player.money >= tile.price) {
-                    if (confirm(`${player.name}，要花 $${tile.price} 買下 ${tile.name} 嗎？`)) {
-                        player.money -= tile.price;
-                        this.ownership[pos] = player.id;
-                        document.getElementById(`owner-${pos}`).innerText = player.name;
-                    }
-                }
-            } else if (ownerIdx !== player.id) {
-                // 付過路費 (設定為地價 20%)
-                const rent = Math.floor(tile.price * 0.2);
-                player.money -= rent;
-                this.players[ownerIdx].money += rent;
-                showModal("付過路費", `${player.name} 踩到了 ${this.players[ownerIdx].name} 的地，支付了 $${rent}`);
-            }
+        if (tile.type === "practice") {
+            title.innerText = "✍️ 語法操練時間";
+            desc.innerText = `${TEAMS[this.currentTeamIdx].name} 請聽題：\n\n${tile.info}`;
+            this.addDecisionButtons(actionArea, oldPos);
+            modal.style.display = 'flex';
         } else if (tile.type === "chance") {
-            const ev = CHANCE_EVENTS[Math.floor(Math.random() * CHANCE_EVENTS.length)];
-            player.money += ev.amount;
-            showModal("機會命運", ev.text);
-        } else if (tile.type === "tax") {
-            player.money -= 500;
-            showModal("繳稅", "中華民國萬萬稅，繳交所得稅 500 元。");
+            title.innerText = "🎲 機會與挑戰";
+            desc.innerText = tile.info;
+            this.addDecisionButtons(actionArea, newPos - 1 < 0 ? 0 : newPos - 1);
+            modal.style.display = 'flex';
+        } else {
+            // 普通城市格，顯示小知識後換手
+            setTimeout(() => this.nextTurn(), 1000);
         }
-
-        this.checkGameOver();
     }
 
-    checkGameOver() {
-        const bankruptPlayer = this.players.find(p => p.money <= 0);
-        if (bankruptPlayer) {
-            showModal("遊戲結束", `${bankruptPlayer.name} 破產了！`);
-            document.getElementById('roll-btn').disabled = true;
-            this.updateUI();
-            return;
-        }
+    addDecisionButtons(container, backPos) {
+        const btnOk = document.createElement('button');
+        btnOk.className = 'btn btn-correct';
+        btnOk.innerText = '✅ 挑戰成功';
+        btnOk.onclick = () => {
+            closeModal();
+            this.nextTurn();
+        };
 
-        this.nextTurn();
+        const btnFail = document.createElement('button');
+        btnFail.className = 'btn btn-wrong';
+        btnFail.innerText = '❌ 挑戰失敗 (退回)';
+        btnFail.onclick = () => {
+            closeModal();
+            this.teamPos[this.currentTeamIdx] = backPos;
+            this.positionBuses();
+            setTimeout(() => this.nextTurn(), 500);
+        };
+
+        container.appendChild(btnOk);
+        container.appendChild(btnFail);
     }
 
     nextTurn() {
-        this.currentPlayerIdx = (this.currentPlayerIdx + 1) % 4;
-        this.isMoving = false;
+        this.currentTeamIdx = (this.currentTeamIdx + 1) % 4;
+        this.updateStatus();
         document.getElementById('roll-btn').disabled = false;
-        this.updateUI();
     }
 
-    updateUI() {
-        const board = document.getElementById('status-board');
-        board.innerHTML = '';
-        this.players.forEach((p, i) => {
-            const card = document.createElement('div');
-            card.className = `player-card ${i === this.currentPlayerIdx ? 'active' : ''}`;
-            card.style.borderBottomColor = p.color;
-            card.innerHTML = `
-                <b>${p.name}</b><br>
-                💰 $${p.money}
-            `;
-            board.appendChild(card);
-        });
-        document.getElementById('current-info').innerText = `輪到：${this.players[this.currentPlayerIdx].name}`;
+    victory(team) {
+        alert(`🎊 恭喜 ${team.name} 抵達終點，贏得旅遊大賽！`);
+        this.reset();
+    }
+
+    reset() {
+        localStorage.removeItem('taiwanGame');
+        location.reload();
     }
 }
 
-// 全域控制函數
 let game;
 window.onload = () => {
-    game = new GameController();
-    document.getElementById('roll-btn').onclick = () => game.rollDice();
+    game = new TravelGame();
+    document.getElementById('roll-btn').onclick = () => game.roll();
+    document.getElementById('reset-btn').onclick = () => {
+        if(confirm("確定要重置所有組別的進度嗎？")) game.reset();
+    };
 };
-
-function showModal(title, content) {
-    document.getElementById('modal-title').innerText = title;
-    document.getElementById('modal-content').innerText = content;
-    document.getElementById('modal-overlay').style.display = 'flex';
-}
 
 function closeModal() {
     document.getElementById('modal-overlay').style.display = 'none';
