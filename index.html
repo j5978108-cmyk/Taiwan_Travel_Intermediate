@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣大富翁 - 環島冒險</title>
+    <style>
+        :root {
+            --p1-color: #ff5252;
+            --p2-color: #448aff;
+            --p3-color: #4caf50;
+            --p4-color: #ffc107;
+            --bg-color: #f0f2f5;
+            --tile-size: 80px;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 { color: #333; margin-bottom: 10px; }
+
+        /* 遊戲棋盤佈局 - 使用 Grid 製作 5x5 矩陣 */
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(5, var(--tile-size));
+            grid-template-rows: repeat(5, var(--tile-size));
+            gap: 4px;
+            background-color: #ccc;
+            border: 8px solid #444;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        /* 格子樣式 */
+        .tile {
+            background-color: white;
+            border: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            position: relative;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .tile .price { color: #e91e63; font-weight: bold; }
+        .corner { background-color: #f9f9f9; font-weight: bold; }
+
+        /* 中間控制區域 */
+        #center-panel {
+            grid-column: 2 / 5;
+            grid-row: 2 / 5;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        /* 玩家棋子樣 style */
+        .piece {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            position: absolute;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        /* 狀態看板 */
+        #status-board {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .player-card {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            width: 120px;
+            border-bottom: 5px solid gray;
+        }
+
+        .active { transform: translateY(-10px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+        /* 按鈕樣式 */
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* 彈窗樣式 */
+        #modal-overlay {
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        #modal {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 400px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🇹🇼 台灣環島大富翁</h1>
+
+    <div id="game-board">
+        <div id="center-panel">
+            <div id="current-info">準備開始...</div>
+            <h2 id="dice-result">🎲</h2>
+            <button id="roll-btn">擲骰子</button>
+        </div>
+    </div>
+
+    <div id="status-board"></div>
+
+    <div id="modal-overlay">
+        <div id="modal">
+            <h2 id="modal-title">標題</h2>
+            <p id="modal-content">內容</p>
+            <button onclick="closeModal()">確定</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * 💡 中級學習重點：
+ * 1. 使用 Class 管理物件狀態
+ * 2. 使用 Async/Await 處理位移動畫
+ * 3. 陣列索引與環狀地圖邏輯
+ */
+
+const INITIAL_MONEY = 6000;
+const GO_BONUS = 2000;
+
+// 定義地圖資料 (16 格)
+const TILES_DATA = [
+    { name: "起點", type: "special", emoji: "🏁" },
+    { name: "台北", type: "city", price: 2500, emoji: "🏛️" },
+    { name: "桃園", type: "city", price: 1500, emoji: "✈️" },
+    { name: "新竹", type: "city", price: 1200, emoji: "🔬" },
+    { name: "休息站", type: "special", emoji: "☕" }, // 角落 
+    { name: "台中", type: "city", price: 2000, emoji: "🥤" },
+    { name: "彰化", type: "city", price: 1000, emoji: "🕍" },
+    { name: "嘉義", type: "city", price: 1000, emoji: "🍗" },
+    { name: "機會命運", type: "chance", emoji: "❓" }, // 角落
+    { name: "台南", type: "city", price: 1800, emoji: "🧱" },
+    { name: "高雄", type: "city", price: 2200, emoji: "⚓" },
+    { name: "屏東", type: "city", price: 1200, emoji: "☀️" },
+    { name: "所得稅", type: "tax", emoji: "💸" }, // 角落
+    { name: "台東", type: "city", price: 1000, emoji: "🎈" },
+    { name: "花蓮", type: "city", price: 1200, emoji: "🌊" },
+    { name: "宜蘭", type: "city", price: 1200, emoji: "♨️" }
+];
+
+const CHANCE_EVENTS = [
+    { text: "發票中獎啦！領取 1000 元。", amount: 1000 },
+    { text: "路邊違規停車被拖吊，罰款 800 元。", amount: -800 },
+    { text: "外送點到雷，心情不好去看醫生花 500 元。", amount: -500 },
+    { text: "恭喜成為全聯第 100 萬位顧客，獎金 1500 元。", amount: 1500 },
+    { text: "參與大甲媽祖遶境，平安就是福，捐獻 600 元。", amount: -600 }
+];
+
+class Player {
+    constructor(id, name, color) {
+        this.id = id;
+        this.name = name;
+        this.color = color;
+        this.money = INITIAL_MONEY;
+        this.position = 0; // 目前在第幾格
+        this.properties = []; // 擁有的土地索引
+        this.isBankrupt = false;
+    }
+}
+
+// 遊戲控制器
+class GameController {
+    constructor() {
+        this.players = [
+            new Player(0, "玩家紅", "var(--p1-color)"),
+            new Player(1, "玩家藍", "var(--p2-color)"),
+            new Player(2, "玩家綠", "var(--p3-color)"),
+            new Player(3, "玩家黃", "var(--p4-color)")
+        ];
+        this.currentPlayerIdx = 0;
+        this.tiles = TILES_DATA;
+        this.ownership = Array(16).fill(null); // 記錄誰買了地
+        this.isMoving = false;
+        
+        this.initBoard();
+        this.updateUI();
+    }
+
+    initBoard() {
+        const board = document.getElementById('game-board');
+        // 依照 Grid 位置排列 16 格 (5x5 邊緣)
+        const gridMapping = [
+            "5/1","4/1","3/1","2/1", // 左側上
+            "1/1","1/2","1/3","1/4", // 上側右
+            "1/5","2/5","3/5","4/5", // 右側下
+            "5/5","5/4","5/3","5/2"  // 下側左
+        ];
+
+        this.tiles.forEach((data, i) => {
+            const tileDiv = document.createElement('div');
+            tileDiv.className = 'tile';
+            tileDiv.id = `tile-${i}`;
+            tileDiv.style.gridArea = gridMapping[i];
+            tileDiv.innerHTML = `
+                <div>${data.emoji}</div>
+                <div><b>${data.name}</b></div>
+                ${data.price ? `<div class="price">$${data.price}</div>` : ''}
+                <div id="owner-${i}" style="font-size:10px; color:gray"></div>
+            `;
+            board.appendChild(tileDiv);
+        });
+
+        // 初始化棋子
+        this.players.forEach(p => {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.id = `piece-${p.id}`;
+            piece.style.backgroundColor = p.color;
+            board.appendChild(piece);
+        });
+        this.positionPieces();
+    }
+
+    // 將棋子定位到正確座標
+    positionPieces() {
+        this.players.forEach(p => {
+            const tile = document.getElementById(`tile-${p.position}`);
+            const piece = document.getElementById(`piece-${p.id}`);
+            // 簡單偏移避免棋子重疊
+            const offset = (p.id * 5) - 10;
+            piece.style.left = (tile.offsetLeft + 30 + offset) + 'px';
+            piece.style.top = (tile.offsetTop + 30 + offset) + 'px';
+        });
+    }
+
+    async rollDice() {
+        if (this.isMoving) return;
+        this.isMoving = true;
+        const btn = document.getElementById('roll-btn');
+        btn.disabled = true;
+
+        const steps = Math.floor(Math.random() * 6) + 1;
+        document.getElementById('dice-result').innerText = "🎲 " + steps;
+        
+        const player = this.players[this.currentPlayerIdx];
+
+        // 模擬一步一步走
+        for (let i = 0; i < steps; i++) {
+            player.position = (player.position + 1) % 16;
+            if (player.position === 0) {
+                player.money += GO_BONUS;
+                this.updateUI();
+            }
+            this.positionPieces();
+            await new Promise(r => setTimeout(r, 250)); // 移動動畫延遲
+        }
+
+        this.handleLand(player);
+    }
+
+    handleLand(player) {
+        const pos = player.position;
+        const tile = this.tiles[pos];
+        const ownerIdx = this.ownership[pos];
+
+        if (tile.type === "city") {
+            if (ownerIdx === null) {
+                // 買地邏輯
+                if (player.money >= tile.price) {
+                    if (confirm(`${player.name}，要花 $${tile.price} 買下 ${tile.name} 嗎？`)) {
+                        player.money -= tile.price;
+                        this.ownership[pos] = player.id;
+                        document.getElementById(`owner-${pos}`).innerText = player.name;
+                    }
+                }
+            } else if (ownerIdx !== player.id) {
+                // 付過路費 (設定為地價 20%)
+                const rent = Math.floor(tile.price * 0.2);
+                player.money -= rent;
+                this.players[ownerIdx].money += rent;
+                showModal("付過路費", `${player.name} 踩到了 ${this.players[ownerIdx].name} 的地，支付了 $${rent}`);
+            }
+        } else if (tile.type === "chance") {
+            const ev = CHANCE_EVENTS[Math.floor(Math.random() * CHANCE_EVENTS.length)];
+            player.money += ev.amount;
+            showModal("機會命運", ev.text);
+        } else if (tile.type === "tax") {
+            player.money -= 500;
+            showModal("繳稅", "中華民國萬萬稅，繳交所得稅 500 元。");
+        }
+
+        this.checkGameOver();
+    }
+
+    checkGameOver() {
+        const bankruptPlayer = this.players.find(p => p.money <= 0);
+        if (bankruptPlayer) {
+            showModal("遊戲結束", `${bankruptPlayer.name} 破產了！`);
+            document.getElementById('roll-btn').disabled = true;
+            this.updateUI();
+            return;
+        }
+
+        this.nextTurn();
+    }
+
+    nextTurn() {
+        this.currentPlayerIdx = (this.currentPlayerIdx + 1) % 4;
+        this.isMoving = false;
+        document.getElementById('roll-btn').disabled = false;
+        this.updateUI();
+    }
+
+    updateUI() {
+        const board = document.getElementById('status-board');
+        board.innerHTML = '';
+        this.players.forEach((p, i) => {
+            const card = document.createElement('div');
+            card.className = `player-card ${i === this.currentPlayerIdx ? 'active' : ''}`;
+            card.style.borderBottomColor = p.color;
+            card.innerHTML = `
+                <b>${p.name}</b><br>
+                💰 $${p.money}
+            `;
+            board.appendChild(card);
+        });
+        document.getElementById('current-info').innerText = `輪到：${this.players[this.currentPlayerIdx].name}`;
+    }
+}
+
+// 全域控制函數
+let game;
+window.onload = () => {
+    game = new GameController();
+    document.getElementById('roll-btn').onclick = () => game.rollDice();
+};
+
+function showModal(title, content) {
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-content').innerText = content;
+    document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').style.display = 'none';
+}
+</script>
+
+</body>
+</html>
