@@ -3,136 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台灣語文大冒險 - 金錢挑戰賽</title>
+    <title>台灣語文大冒險 </title>
     <style>
         :root {
             --primary-color: #2e7d32;
             --accent-color: #ff9800;
-            --tile-size: 155px;
+            --tile-size: clamp(100px, 15vw, 150px); /* 動態調整大小適應螢幕 */
         }
 
         body {
-            font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            /* 背景設定為您提供的照片 */
+            font-family: "Noto Sans TC", sans-serif;
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column; align-items: center;
             background: url('https://images.unsplash.com/photo-1552912115-46387060156d?auto=format&fit=crop&w=1600&q=80') no-repeat center center fixed;
             background-size: cover;
+            min-height: 100vh;
         }
 
-        /* 遮罩讓文字更清晰 */
-        .overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.4);
-            z-index: -1;
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: -1; }
+
+        header { color: white; text-align: center; padding: 10px; text-shadow: 2px 2px 5px #000; }
+
+        /* 音樂與控制列 */
+        .top-ctrl { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 10px; }
+        .ctrl-box { background: rgba(255,255,255,0.9); padding: 5px 15px; border-radius: 20px; font-size: 14px; display: flex; align-items: center; }
+
+        /* 響應式棋盤容器 */
+        .board-container {
+            width: 95%; max-width: 1000px;
+            overflow-x: auto; /* 手機端可左右滑動 */
+            padding: 10px;
+            display: flex; justify-content: center;
         }
 
-        header {
-            padding: 15px;
-            color: white;
-            text-align: center;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
-        }
-
-        #music-bar {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 20px;
-            border-radius: 30px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        /* 棋盤 */
         #game-board {
             display: grid;
             grid-template-columns: repeat(6, var(--tile-size));
             grid-template-rows: repeat(6, var(--tile-size));
-            gap: 8px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(5px);
-            border: 10px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+            border: 8px solid rgba(255,255,255,0.3);
+            border-radius: 15px;
+            position: relative;
         }
 
         .tile {
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 8px;
-            text-align: center;
-            position: relative;
+            border-radius: 8px; display: flex; flex-direction: column;
+            align-items: center; padding: 5px; text-align: center; font-size: 14px;
         }
+        .tile-name { font-weight: bold; font-size: clamp(14px, 2vw, 20px); margin-top: 2px; }
+        .tile-img { width: 100%; height: 45%; object-fit: cover; border-radius: 4px; }
+        
+        /* 類型條 */
+        .city { border-bottom: 5px solid #2196f3; }
+        .practice { border-bottom: 5px solid #fbc02d; background: #fffde7; }
+        .chance { border-bottom: 5px solid #f06292; background: #fdf2f8; }
+        .special { background: #eee; border-bottom: 5px solid #78909c; }
 
-        .tile-name { font-size: 24px; font-weight: 900; color: #2c3e50; margin-top: 5px; }
-        .tile-img { width: 100%; height: 85px; object-fit: cover; border-radius: 5px; }
-
-        .city { border-bottom: 8px solid #2196f3; }
-        .practice { border-bottom: 8px solid #fbc02d; background: #fffde7; }
-        .chance { border-bottom: 8px solid #f06292; background: #fdf2f8; }
-        .special { background: #eceff1; border-bottom: 8px solid #78909c; }
-
-        /* 控制中心 */
-        #control-center {
-            grid-column: 2 / 6;
-            grid-row: 2 / 6;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.85);
-            border-radius: 20px;
-            margin: 15px;
-        }
-
+        /* 玩家棋子 */
         .bus {
-            width: 50px; height: 50px;
-            position: absolute;
-            z-index: 100;
-            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            font-size: 42px;
-            display: flex;
-            align-items: center; justify-content: center;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+            width: 35px; height: 35px; position: absolute; z-index: 100;
+            transition: all 0.5s ease; font-size: 30px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* 中間操作區 */
+        #control-center {
+            grid-column: 2 / 6; grid-row: 2 / 6;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.8); border-radius: 15px; margin: 10px;
         }
 
         .btn {
-            padding: 15px 35px; font-size: 26px; font-weight: bold;
-            cursor: pointer; background: linear-gradient(to bottom, #4caf50, #2e7d32);
-            color: white; border: none; border-radius: 50px;
-            box-shadow: 0 6px 0 #1b5e20; margin: 10px;
+            padding: 10px 20px; font-size: 18px; font-weight: bold;
+            cursor: pointer; background: #2e7d32; color: white; border: none;
+            border-radius: 30px; box-shadow: 0 4px 0 #1b5e20; margin: 5px;
         }
-        .btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #1b5e20; }
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #1b5e20; }
+        .btn-hint { background: #0288d1; font-size: 14px; margin-top: 10px; }
 
-        /* 隊伍資訊卡 */
-        #status-panel { display: flex; gap: 15px; margin-bottom: 15px; }
-        .team-card {
-            background: white; padding: 10px 20px; border-radius: 10px;
-            min-width: 140px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            font-size: 18px; border-left: 10px solid #ccc;
-        }
-        .team-card.active { transform: scale(1.05); border-bottom: 5px solid var(--accent-color); }
+        /* 狀態列 */
+        #status-panel { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
+        .team-card { background: white; padding: 8px 15px; border-radius: 10px; min-width: 100px; border-left: 8px solid #ccc; font-size: 14px; }
+        .team-card.active { transform: scale(1.05); box-shadow: 0 0 10px gold; }
 
+        /* 彈窗 */
         #modal-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.85); display: none;
             justify-content: center; align-items: center; z-index: 2000;
         }
-        #modal {
-            background: white; padding: 40px; border-radius: 25px;
-            width: 80%; max-width: 650px; text-align: center;
-        }
+        #modal { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 500px; text-align: center; }
+        #hint-box { display: none; background: #e3f2fd; padding: 10px; margin: 10px 0; border-radius: 5px; color: #01579b; font-style: italic; }
     </style>
 </head>
 <body>
@@ -140,38 +104,49 @@
 <div class="overlay"></div>
 
 <header>
-    <h1>🇹🇼 台灣語文大冒險：金錢挑戰賽</h1>
+    <h1>🇹🇼 台灣語文大冒險</h1>
+    <div class="top-ctrl">
+        <div class="ctrl-box">🎯 目標：$5,000 獲勝</div>
+        <div class="ctrl-box">🎵 音樂：<iframe width="120" height="20" src="https://www.youtube.com/embed/fT-nO_9P4v0" frameborder="0"></iframe></div>
+    </div>
 </header>
 
-<div id="music-bar">
-    <span>🎵 背景音樂：</span>
-    <iframe width="200" height="25" src="https://www.youtube.com/embed/fT-nO_9P4v0?autoplay=1" frameborder="0"></iframe>
+<div class="board-container">
+    <div id="game-board">
+        <div id="control-center">
+            <div id="turn-display" style="font-weight: bold; color:#1b5e20"></div>
+            <div id="dice-display" style="font-size: 50px;">🎲</div>
+            <button class="btn" id="roll-btn">擲骰子</button>
+        </div>
+    </div>
 </div>
 
 <div id="status-panel"></div>
 
-<div id="game-board">
-    <div id="control-center">
-        <div id="turn-display" style="font-size: 22px; font-weight: bold; color:#1b5e20"></div>
-        <div id="dice-display" style="font-size: 70px; margin: 5px;">🎲</div>
-        <button class="btn" id="roll-btn">擲骰子前進</button>
-        <button id="reset-btn" style="margin-top:10px; background:none; border:none; color:#333; cursor:pointer; text-decoration:underline">重置遊戲</button>
-    </div>
-</div>
-
 <div id="modal-overlay">
     <div id="modal">
-        <h2 id="modal-title" style="color: #666;">任務挑戰</h2>
-        <div id="modal-desc" style="font-size: 30px; font-weight: bold; margin: 30px 0;"></div>
-        <p id="modal-reward" style="color: #2e7d32; font-size: 20px; font-weight: bold;"></p>
-        <div style="display: flex; justify-content: space-around;">
-            <button class="btn" style="background: #43a047;" onclick="game.handleDecision(true)">✅ 成功 (+$$)</button>
-            <button class="btn" style="background: #e53935;" onclick="game.handleDecision(false)">❌ 失敗 (退回)</button>
+        <h2 id="modal-title" style="font-size: 18px; color: #666;">任務挑戰</h2>
+        <div id="modal-desc" style="font-size: 24px; font-weight: bold; margin: 15px 0;"></div>
+        
+        <button class="btn btn-hint" id="hint-btn" onclick="toggleHint()">💡 查看範例提示</button>
+        <div id="hint-box"></div>
+
+        <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+            <button class="btn" style="background: #43a047;" onclick="game.handleDecision(true)">✅ 成功</button>
+            <button class="btn" style="background: #e53935;" onclick="game.handleDecision(false)">❌ 失敗</button>
         </div>
     </div>
 </div>
 
 <script>
+/**
+ * 💡 修正重點：
+ * 1. 隨機知識池 (每格 3 條隨機語句)
+ * 2. 範例提示 (Hint) 系統
+ * 3. 目標金額判定 (Win Condition)
+ */
+
+const WIN_MONEY = 5000;
 const TILE_COUNT = 20;
 const TEAMS = [
     { id: 0, name: "第一組", icon: "🚌", color: "#ff5252" },
@@ -180,74 +155,75 @@ const TEAMS = [
     { id: 3, name: "第四組", icon: "🚜", color: "#ffc107" }
 ];
 
-//在地化事件池
-const CHANCE_EVENTS = [
-    { text: "大甲媽祖遶境：全組獲得保佑，獎金 $1000！", money: 1000 },
-    { text: "外送雷：餐點全翻了，心情不好罰 $500！", money: -500 },
-    { text: "中發票：恭喜中了五獎，獲得 $1000！", money: 1000 },
-    { text: "萬萬稅：中華民國萬萬稅，繳交所得稅 $800！", money: -800 },
-    { text: "遇到老同學：請你去喝珍奶，獲得 $300！", money: 300 },
-    { text: "違規停車：被警察開單，罰款 $600！", money: -600 }
-];
-
 const BOARD_DATA = [
-    { name: "起點", type: "special", emoji: "🏁" },
-    { name: "台北", type: "city", img: "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=300" },
-    { name: "語法操練", type: "practice", desc: "請用「不但...而且...」造句。", reward: 500 },
-    { name: "桃園", type: "city", img: "https://images.unsplash.com/photo-1570654639102-bdd95eeece7a?w=300" },
+    { name: "起點", type: "special", emoji: "🏁", facts: ["環島旅行開始囉！", "經過起點可以領獎金。"] },
+    { name: "台北", type: "city", img: "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=400", 
+      facts: ["101大樓跨年煙火很有名。", "台北捷運非常乾淨。", "故宮博物院有翠玉白菜。"] },
+    { name: "語法操練", type: "practice", desc: "請用「不但...而且...」造句。", hint: "例句：台灣不但風景美，而且人情味濃厚。", reward: 500 },
+    { name: "桃園", type: "city", img: "https://images.unsplash.com/photo-1570654639102-bdd95eeece7a?w=400", 
+      facts: ["桃園機場是台灣最大的機場。", "大溪老街的豆乾很有名。", "拉拉山的水蜜桃很好吃。"] },
     { name: "機會命運", type: "chance" },
-    { name: "新竹", type: "city", img: "https://images.unsplash.com/photo-1571406451730-804193613098?w=300" },
-    { name: "語法操練", type: "practice", desc: "請用「既然...就...」造句。", reward: 500 },
-    { name: "台中", type: "city", img: "https://images.unsplash.com/photo-159981881ef80-77a8286c8f92?w=300" },
+    { name: "新竹", type: "city", img: "https://images.unsplash.com/photo-1571406451730-804193613098?w=400", 
+      facts: ["新竹被稱為「風城」。", "新竹科學園區是科技重鎮。", "城隍廟的小吃不可錯過。"] },
+    { name: "語法操練", type: "practice", desc: "請用「既然...就...」造句。", hint: "例句：既然來到台灣，就一定要喝珍珠奶茶。", reward: 500 },
+    { name: "台中", type: "city", img: "https://images.unsplash.com/photo-159981881ef80-77a8286c8f92?w=400", 
+      facts: ["珍珠奶茶是從台中發源的。", "高美濕地的夕陽非常美。", "逢甲夜市是台灣最大的夜市之一。"] },
     { name: "機會命運", type: "chance" },
-    { name: "嘉義", type: "city", img: "https://images.unsplash.com/photo-1621929747188-0b4dc284980c?w=300" },
-    { name: "休息站", type: "special", emoji: "🍵" },
-    { name: "台南", type: "city", img: "https://images.unsplash.com/photo-1594132038755-d41c19be36e1?w=300" },
-    { name: "語法操練", type: "practice", desc: "請用「除非...才...」造句。", reward: 500 },
-    { name: "高雄", type: "city", img: "https://images.unsplash.com/photo-1552057774-60b665679951?w=300" },
+    { name: "嘉義", type: "city", img: "https://images.unsplash.com/photo-1621929747188-0b4dc284980c?w=400", 
+      facts: ["嘉義雞肉飯是必吃美食。", "阿里山小火車是世界級文化資產。", "嘉義是北回歸線經過的地方。"] },
+    { name: "休息站", type: "special", emoji: "🍵", facts: ["休息是為了走更長遠的路。"] },
+    { name: "台南", type: "city", img: "https://images.unsplash.com/photo-1594132038755-d41c19be36e1?w=400", 
+      facts: ["台南是台灣最早開發的城市。", "牛肉湯是台南人的早餐。", "赤崁樓歷史悠久。"] },
+    { name: "語法操練", type: "practice", desc: "請用「除非...才...」造句。", hint: "例句：除非你努力練習，才能說好中文。", reward: 500 },
+    { name: "高雄", type: "city", img: "https://images.unsplash.com/photo-1552057774-60b665679951?w=400", 
+      facts: ["愛河是散步的好地方。", "駁二藝術特區充滿創意。", "旗津老街的海鮮很有名。"] },
     { name: "機會命運", type: "chance" },
-    { name: "台東", type: "city", img: "https://images.unsplash.com/photo-1580665910386-8d1976a4455f?w=300" },
-    { name: "語法操練", type: "practice", desc: "請用「與其...不如...」造句。", reward: 500 },
-    { name: "花蓮", type: "city", img: "https://images.unsplash.com/photo-1584981442475-430c51121857?w=300" },
+    { name: "台東", type: "city", img: "https://images.unsplash.com/photo-1580665910386-8d1976a4455f?w=400", 
+      facts: ["每年夏天都有熱氣球嘉年華。", "三仙台的跨海步橋像巨龍。", "台東的池上米非常香。"] },
+    { name: "語法操練", type: "practice", desc: "請用「與其...不如...」造句。", hint: "例句：與其在飯店睡覺，不如出去逛逛夜市。", reward: 500 },
+    { name: "花蓮", type: "city", img: "https://images.unsplash.com/photo-1584981442475-430c51121857?w=400", 
+      facts: ["太魯閣的大理岩峽谷世界知名。", "七星潭是看海的絕佳景點。", "花蓮是麻糬的故鄉。"] },
     { name: "機會命運", type: "chance" },
-    { name: "宜蘭", type: "city", img: "https://images.unsplash.com/photo-1628082601955-f7734a7ed27b?w=300" }
+    { name: "宜蘭", type: "city", img: "https://images.unsplash.com/photo-1628082601955-f7734a7ed27b?w=400", 
+      facts: ["礁溪溫泉是平地溫泉。", "宜蘭三星蔥特別香脆。", "蘭陽博物館建築非常特別。"] }
 ];
 
-class TravelGame {
+const EVENTS = [
+    { text: "大甲媽祖遶境：全組參與平安餐，獎金 $1000！", money: 1000 },
+    { text: "外送雷：餐飲全翻了，罰款 $500！", money: -500 },
+    { text: "中發票：中了六獎 $200 元！", money: 200 },
+    { text: "萬萬稅：繳交綜合所得稅 $800！", money: -800 },
+    { text: "夜市擺攤：生意興隆，賺到 $1500！", money: 1500 }
+];
+
+class Game {
     constructor() {
         this.teamPos = [0, 0, 0, 0];
         this.teamMoney = [0, 0, 0, 0];
-        this.currentTeamIdx = 0;
+        this.currentIdx = 0;
         this.oldPos = 0;
-        this.currentReward = 0;
-        this.load();
+        this.currReward = 0;
         this.init();
     }
 
     init() {
         const board = document.getElementById('game-board');
         const gridMapping = ["6/1", "5/1", "4/1", "3/1", "2/1", "1/1", "1/2", "1/3", "1/4", "1/5", "1/6", "2/6", "3/6", "4/6", "5/6", "6/6", "6/5", "6/4", "6/3", "6/2"];
-
-        BOARD_DATA.forEach((data, i) => {
-            const tile = document.createElement('div');
-            tile.className = `tile ${data.type}`;
-            tile.style.gridArea = gridMapping[i];
-            tile.id = `tile-${i}`;
-            tile.innerHTML = `
-                ${data.img ? `<img class="tile-img" src="${data.img}">` : `<div style="font-size:45px">${data.emoji || '❓'}</div>`}
-                <div class="tile-name">${data.name}</div>
+        BOARD_DATA.forEach((d, i) => {
+            const t = document.createElement('div');
+            t.className = `tile ${d.type}`;
+            t.style.gridArea = gridMapping[i];
+            t.id = `tile-${i}`;
+            t.innerHTML = `
+                ${d.img ? `<img class="tile-img" src="${d.img}">` : `<div style="font-size:30px">${d.emoji || '❓'}</div>`}
+                <div class="tile-name">${d.name}</div>
             `;
-            board.appendChild(tile);
+            board.appendChild(t);
         });
-
         TEAMS.forEach(t => {
-            const bus = document.createElement('div');
-            bus.className = 'bus';
-            bus.id = `bus-${t.id}`;
-            bus.innerText = t.icon;
-            board.appendChild(bus);
+            const b = document.createElement('div'); b.className = 'bus'; b.id = `bus-${t.id}`; b.innerText = t.icon;
+            board.appendChild(b);
         });
-
         this.update();
         this.positionBuses();
     }
@@ -256,28 +232,25 @@ class TravelGame {
         this.teamPos.forEach((pos, id) => {
             const tile = document.getElementById(`tile-${pos}`);
             const bus = document.getElementById(`bus-${id}`);
-            const offset = (id * 12) - 24;
-            bus.style.left = (tile.offsetLeft + 50 + offset) + 'px';
-            bus.style.top = (tile.offsetTop + 50 + offset) + 'px';
+            const offset = (id * 10) - 20;
+            bus.style.left = (tile.offsetLeft + 30 + offset) + 'px';
+            bus.style.top = (tile.offsetTop + 30 + offset) + 'px';
         });
     }
 
     async roll() {
         document.getElementById('roll-btn').disabled = true;
-        const steps = Math.floor(Math.random() * 6) + 1;
-        document.getElementById('dice-display').innerText = "🎲 " + steps;
-
-        this.oldPos = this.teamPos[this.currentTeamIdx];
+        const roll = Math.floor(Math.random() * 6) + 1;
+        document.getElementById('dice-display').innerText = "🎲 " + roll;
+        this.oldPos = this.teamPos[this.currentIdx];
         let p = this.oldPos;
-
-        for (let i = 0; i < steps; i++) {
-            p = (p + 1);
-            if (p >= TILE_COUNT) {
-                alert(`🎊 ${TEAMS[this.currentTeamIdx].name} 繞台一周！獲得獎金 $2000！`);
-                this.teamMoney[this.currentTeamIdx] += 2000;
-                p = 0;
+        for (let i = 0; i < roll; i++) {
+            p = (p + 1) % TILE_COUNT;
+            if (p === 0) {
+                alert(`🎊 ${TEAMS[this.currentIdx].name} 繞台一周！獲得 $2000！`);
+                this.teamMoney[this.currentIdx] += 2000;
             }
-            this.teamPos[this.currentTeamIdx] = p;
+            this.teamPos[this.currentIdx] = p;
             this.positionBuses();
             await new Promise(r => setTimeout(r, 400));
         }
@@ -285,86 +258,72 @@ class TravelGame {
     }
 
     checkTile(pos) {
-        const tile = BOARD_DATA[pos];
+        const d = BOARD_DATA[pos];
         const modal = document.getElementById('modal-overlay');
-        const desc = document.getElementById('modal-desc');
-        const rewardText = document.getElementById('modal-reward');
+        document.getElementById('hint-box').style.display = 'none';
+        document.getElementById('hint-btn').style.display = d.hint ? 'block' : 'none';
 
-        if (tile.type === "practice") {
-            desc.innerText = tile.desc;
-            this.currentReward = tile.reward;
-            rewardText.innerText = `💰 答對獎金：$${tile.reward}`;
+        if (d.type === "practice") {
+            document.getElementById('modal-title').innerText = "✍️ 語法操練";
+            document.getElementById('modal-desc').innerText = d.desc;
+            document.getElementById('hint-box').innerText = d.hint;
+            this.currReward = d.reward;
             modal.style.display = 'flex';
-        } else if (tile.type === "chance") {
-            const ev = CHANCE_EVENTS[Math.floor(Math.random() * CHANCE_EVENTS.length)];
-            desc.innerText = ev.text;
-            this.currentReward = ev.money;
-            rewardText.innerText = ev.money > 0 ? `💰 獲得獎金：$${ev.money}` : `💸 損失：$${Math.abs(ev.money)}`;
+        } else if (d.type === "chance") {
+            const ev = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+            document.getElementById('modal-title').innerText = "🎲 隨機事件";
+            document.getElementById('modal-desc').innerText = ev.text;
+            this.currReward = ev.money;
             modal.style.display = 'flex';
         } else {
-            setTimeout(() => this.nextTurn(), 800);
+            // 城市格：隨機顯示小知識
+            const fact = d.facts[Math.floor(Math.random() * d.facts.length)];
+            document.getElementById('modal-title').innerText = "🏙️ 旅遊小知識";
+            document.getElementById('modal-desc').innerText = fact;
+            document.getElementById('hint-btn').style.display = 'none';
+            this.currReward = 0;
+            modal.style.display = 'flex';
         }
     }
 
-    handleDecision(isSuccess) {
+    handleDecision(success) {
         document.getElementById('modal-overlay').style.display = 'none';
-        if (isSuccess) {
-            this.teamMoney[this.currentTeamIdx] += this.currentReward;
-            if (this.teamMoney[this.currentTeamIdx] < 0) this.teamMoney[this.currentTeamIdx] = 0;
+        if (success) {
+            this.teamMoney[this.currentIdx] += this.currReward;
         } else {
-            // 失敗退回原位
-            this.teamPos[this.currentTeamIdx] = this.oldPos;
+            this.teamPos[this.currentIdx] = this.oldPos;
             this.positionBuses();
         }
-        setTimeout(() => this.nextTurn(), 500);
-    }
-
-    nextTurn() {
-        this.currentTeamIdx = (this.currentTeamIdx + 1) % 4;
+        this.checkWin();
+        this.currentIdx = (this.currentIdx + 1) % 4;
         this.update();
         document.getElementById('roll-btn').disabled = false;
     }
 
-    update() {
-        const panel = document.getElementById('status-panel');
-        panel.innerHTML = '';
-        TEAMS.forEach((t, i) => {
-            const card = document.createElement('div');
-            card.className = `team-card ${i === this.currentTeamIdx ? 'active' : ''}`;
-            card.style.borderLeftColor = t.color;
-            card.innerHTML = `<b>${t.name}</b><br><span style="color:green; font-weight:bold">💰 $${this.teamMoney[i]}</span>`;
-            panel.appendChild(card);
-        });
-        document.getElementById('turn-display').innerText = `目前輪到：${TEAMS[this.currentTeamIdx].name}`;
-        this.save();
-    }
-
-    save() {
-        localStorage.setItem('taiwanGameV3', JSON.stringify({
-            p: this.teamPos, m: this.teamMoney, idx: this.currentTeamIdx
-        }));
-    }
-
-    load() {
-        const s = localStorage.getItem('taiwanGameV3');
-        if (s) {
-            const d = JSON.parse(s);
-            this.teamPos = d.p; this.teamMoney = d.m; this.currentTeamIdx = d.idx;
+    checkWin() {
+        if (this.teamMoney[this.currentIdx] >= WIN_MONEY) {
+            alert(`🏆 恭喜 ${TEAMS[this.currentIdx].name} 率先達成目標，贏得比賽！`);
+            location.reload();
         }
     }
 
-    reset() {
-        localStorage.removeItem('taiwanGameV3');
-        location.reload();
+    update() {
+        const p = document.getElementById('status-panel'); p.innerHTML = '';
+        TEAMS.forEach((t, i) => {
+            const c = document.createElement('div');
+            c.className = `team-card ${i === this.currentIdx ? 'active' : ''}`;
+            c.style.borderLeftColor = t.color;
+            c.innerHTML = `<b>${t.name}</b><br>💰 $${this.teamMoney[i]}`;
+            p.appendChild(c);
+        });
+        document.getElementById('turn-display').innerText = `輪到：${TEAMS[this.currentIdx].name}`;
     }
 }
 
 let game;
-window.onload = () => {
-    game = new TravelGame();
-    document.getElementById('roll-btn').onclick = () => game.roll();
-    document.getElementById('reset-btn').onclick = () => { if(confirm("重置所有組別金錢與位置嗎？")) game.reset(); };
-};
+window.onload = () => { game = new Game(); document.getElementById('roll-btn').onclick = () => game.roll(); };
+function toggleHint() { const b = document.getElementById('hint-box'); b.style.display = b.style.display === 'block' ? 'none' : 'block'; }
 </script>
+
 </body>
 </html>
