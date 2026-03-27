@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台灣語文大冒險 - 認知優化版</title>
+    <title>台灣語文大冒險 - 鼓勵學習版</title>
     <style>
         :root {
             --primary-color: #2e7d32;
@@ -23,7 +23,6 @@
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: -1; }
 
         header { color: white; text-align: center; padding: 10px; text-shadow: 2px 2px 5px #000; }
-
         .top-info { background: rgba(255,255,255,0.95); padding: 8px 25px; border-radius: 30px; margin-bottom: 10px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 18px; }
 
         .board-container { width: 98%; max-width: 1050px; overflow-x: auto; padding: 10px; display: flex; justify-content: center; }
@@ -83,7 +82,6 @@
         }
         #modal { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 550px; text-align: center; }
         
-        /* 空間鄰近原則：題目與提示緊鄰 */
         .hint-text { background: #e3f2fd; padding: 12px; margin: 10px 0; border-radius: 8px; color: #01579b; font-size: 18px; border-left: 5px solid #0288d1; }
         
         .quiz-opt {
@@ -101,7 +99,7 @@
     <h1>🇹🇼 大富翁冒險 — 台灣旅遊文化</h1>
 </header>
 
-<div class="top-info">🎯 勝利目標：$3,000</div>
+<div class="top-info">🎯 勝利目標：$3,000 | 鼓勵學習模式：錯誤不退回原點</div>
 
 <div class="board-container">
     <div id="game-board">
@@ -127,16 +125,15 @@
 
         <div id="practice-area" style="display:none;">
             <div style="display: flex; justify-content: space-around; margin-top: 20px;">
-                <button class="btn" style="background: #43a047;" onclick="game.handleManual(true)">✅ 成功 (+$500)</button>
-                <button class="btn" style="background: #e53935;" onclick="game.handleManual(false)">❌ 失敗 (退回)</button>
+                <button class="btn" style="background: #43a047;" onclick="game.handleManual(true)">✅ 答對了 (+$500)</button>
+                <button class="btn" style="background: #78909c;" onclick="game.handleManual(false)">❌ 再接再厲 (留在原位)</button>
             </div>
         </div>
-        <button id="close-btn" class="btn" style="display:none;" onclick="game.closeModal()">關閉並繼續</button>
+        <button id="close-btn" class="btn" style="display:none;" onclick="game.closeModal()">繼續遊戲</button>
     </div>
 </div>
 
 <script>
-// 音效系統 (模態原則：聽覺反饋輔助視覺)
 const sound = {
     ctx: new (window.AudioContext || window.webkitAudioContext)(),
     play(freq, type, duration) {
@@ -151,7 +148,7 @@ const sound = {
     },
     dice() { this.play(440, 'sine', 0.2); },
     win() { this.play(880, 'triangle', 0.5); },
-    lose() { this.play(220, 'sawtooth', 0.5); }
+    lose() { this.play(330, 'sine', 0.3); }
 };
 
 const WIN_MONEY = 3000;
@@ -163,28 +160,67 @@ const TEAMS = [
     { id: 3, name: "第四組", icon: "🚜", color: "#ffc107" }
 ];
 
-// 核心地圖資料
 const BOARD_DATA = [
     { name: "起點", type: "special", emoji: "🏁" },
-    { name: "台北", type: "city", img: "台北.jpg", quiz: { q: "這張照片中最高的地標建築名稱是？", a: ["台北101", "新光摩天大樓", "高雄85大樓"], correct: 0 } },
+    { name: "台北", type: "city", img: "台北.jpg", quizPool: [
+        { q: "台北 101 大樓曾經是世界最高樓，它主要位於台北市哪個區？", a: ["信義區", "萬華區", "士林區"], correct: 0 },
+        { q: "台北最有名的故宮博物院，裡面哪件文物最像蔬菜？", a: ["毛公鼎", "肉形石", "翠玉白菜"], correct: 2 },
+        { q: "台北陽明山以什麼樣的地質特色著稱？", a: ["火山與溫泉", "冰河谷", "沙漠"], correct: 0 }
+    ]},
     { name: "語法操練", type: "practice", img: "https://upload.wikimedia.org/wikipedia/commons/1/1d/Speech_bubbles_clipart.png", desc: "請用「不但...而且...」造句。", hint: "💡 提示：台北不但交通方便，而且美食很多。" },
-    { name: "桃園", type: "city", img: "桃園.jpg", quiz: { q: "這種復古的建築風格，在桃園哪條老街最出名？", a: ["九份老街", "大溪老街", "淡水老街"], correct: 1 } },
+    { name: "桃園", type: "city", img: "桃園.jpg", quizPool: [
+        { q: "桃園機場是台灣的門戶，它的國際代碼是？", a: ["TPE", "KHH", "TSA"], correct: 0 },
+        { q: "大溪老街最出名的名產是？", a: ["太陽餅", "豆乾", "麻糬"], correct: 1 },
+        { q: "桃園有許多埤塘，這些埤塘古時候主要的功能是？", a: ["游泳", "農業灌溉", "賽船"], correct: 1 }
+    ]},
     { name: "機會命運", type: "chance" },
-    { name: "新竹", type: "city", img: "新竹.jpg", quiz: { q: "照片中的東門城，位於有什麼稱號的城市？", a: ["雨城", "風城", "太陽城"], correct: 1 } },
+    { name: "新竹", type: "city", img: "新竹.jpg", quizPool: [
+        { q: "新竹因為地理位置的關係，風力特別強，因此被稱為什麼？", a: ["雨城", "風城", "太陽城"], correct: 1 },
+        { q: "新竹科學園區是台灣發展什麼產業的重鎮？", a: ["紡織業", "高科技業", "造船業"], correct: 1 },
+        { q: "新竹城隍廟最有名的小吃是什麼？", a: ["米粉與摃丸", "臭豆腐", "蚵仔煎"], correct: 0 }
+    ]},
     { name: "語法操練", type: "practice", img: "https://upload.wikimedia.org/wikipedia/commons/1/1d/Speech_bubbles_clipart.png", desc: "請用「既然...就...」造句。", hint: "💡 提示：既然來到新竹，就一定要買貢丸。" },
-    { name: "台中", type: "city", img: "台中.jpg", quiz: { q: "照片中夕陽與風車的景點，是著名的：", a: ["高美濕地", "漁人碼頭", "旗津"], correct: 0 } },
+    { name: "台中", type: "city", img: "台中.jpg", quizPool: [
+        { q: "台中高美濕地最著名的景色是？", a: ["森林步道", "夕陽與風車", "高山瀑布"], correct: 1 },
+        { q: "台中發明的知名國民飲品是？", a: ["珍珠奶茶", "檸檬紅茶", "可樂"], correct: 0 },
+        { q: "台中彩虹眷村是誰一筆一畫彩繪出來的？", a: ["小學生", "彩虹爺爺", "外國畫家"], correct: 1 }
+    ]},
     { name: "機會命運", type: "chance" },
-    { name: "嘉義", type: "city", img: "嘉義.jpg", quiz: { q: "照片中雲霧繚繞的高山美景，是台灣著名的：", a: ["玉山", "阿里山", "陽明山"], correct: 1 } },
+    { name: "嘉義", type: "city", img: "嘉義.jpg", quizPool: [
+        { q: "嘉義阿里山除了看日出，還有一條非常著名的？", a: ["森林小火車", "纜車", "地下鐵"], correct: 0 },
+        { q: "嘉義是北回歸線經過的地方，這裡有一座？", a: ["北回歸線太陽館", "冰雕館", "海洋館"], correct: 0 },
+        { q: "嘉義最出名的平民美食是？", a: ["火雞肉飯", "牛肉麵", "小籠包"], correct: 0 }
+    ]},
     { name: "休息站", type: "special", emoji: "🍵" },
-    { name: "台南", type: "city", img: "台南.jpg", quiz: { q: "這座紅色的古蹟建築是台南的什麼地方？", a: ["安平古堡", "赤崁樓", "延平郡王祠"], correct: 1 } },
+    { name: "台南", type: "city", img: "台南.jpg", quizPool: [
+        { q: "台南是台灣最早開發的城市，被譽為什麼？", a: ["科技之都", "美食與古蹟之都", "滑雪之都"], correct: 1 },
+        { q: "台南哪種早餐非常有特色且受歡迎？", a: ["牛肉湯", "義大利麵", "漢堡"], correct: 0 },
+        { q: "赤崁樓以前是什麼人的治理中心？", a: ["荷蘭人", "西班牙人", "日本人"], correct: 0 }
+    ]},
     { name: "語法操練", type: "practice", img: "https://upload.wikimedia.org/wikipedia/commons/1/1d/Speech_bubbles_clipart.png", desc: "請用「除非...才...」造句。", hint: "💡 提示：除非你去過台南，才知道什麼是美食之都。" },
-    { name: "高雄", type: "city", img: "高雄.jpeg", quiz: { q: "著名的龍虎塔，位於高雄的哪一個潭？", a: ["日月潭", "蓮池潭", "澄清湖"], correct: 1 } },
+    { name: "高雄", type: "city", img: "高雄.jpeg", quizPool: [
+        { q: "高雄著名的龍虎塔，遊客必須由哪邊進、哪邊出才能趨吉避凶？", a: ["龍口進、虎口出", "虎口進、龍口出", "隨便進出"], correct: 0 },
+        { q: "高雄愛河以前是什麼功能？", a: ["運河", "天然湖泊", "海水浴場"], correct: 0 },
+        { q: "高雄著名的藝術園區名稱是？", a: ["駁二藝術特區", "草山園區", "科學園區"], correct: 0 }
+    ]},
     { name: "機會命運", type: "chance" },
-    { name: "台東", type: "city", img: "台東.jpeg", quiz: { q: "這條筆直延伸在稻田間的小路被稱為？", a: ["伯朗大道", "羅斯福路", "草地大道"], correct: 0 } },
+    { name: "台東", type: "city", img: "台東.jpeg", quizPool: [
+        { q: "台東著名的伯朗大道，因為哪位明星拍廣告而爆紅？", a: ["金城武", "周杰倫", "劉德華"], correct: 0 },
+        { q: "台東三仙台最著名的建築是？", a: ["跨海步橋", "燈塔", "摩天大樓"], correct: 0 },
+        { q: "台東每年的夏天都會舉辦什麼大型嘉年華？", a: ["熱氣球嘉年華", "滑雪節", "衝浪節"], correct: 0 }
+    ]},
     { name: "語法操練", type: "practice", img: "https://upload.wikimedia.org/wikipedia/commons/1/1d/Speech_bubbles_clipart.png", desc: "請用「與其...不如...」造句。", hint: "💡 提示：與其去百貨公司，不如去台東看風景。" },
-    { name: "花蓮", type: "city", img: "花蓮.jpg", quiz: { q: "照片中驚險壯麗的海邊峭壁是著名的？", a: ["清水斷崖", "野柳女王頭", "鵝鑾鼻"], correct: 0 } },
+    { name: "花蓮", type: "city", img: "花蓮.jpg", quizPool: [
+        { q: "花蓮太魯閣國家公園以什麼樣的地質地貌著稱？", a: ["大理岩峽谷", "黃金沙灘", "熱帶雨林"], correct: 0 },
+        { q: "花蓮哪一個海灘以美麗的弧線和卵石聞名？", a: ["七星潭", "墾丁", "外澳"], correct: 0 },
+        { q: "花蓮是哪一個台灣原住民族人數最多的分佈地？", a: ["阿美族", "泰雅族", "排灣族"], correct: 0 }
+    ]},
     { name: "機會命運", type: "chance" },
-    { name: "宜蘭", type: "city", img: "宜蘭.jpg", quiz: { q: "大家正在享受溫泉泡腳的地方是宜蘭哪裡？", a: ["烏來", "礁溪", "谷關"], correct: 1 } }
+    { name: "宜蘭", type: "city", img: "宜蘭.jpg", quizPool: [
+        { q: "宜蘭礁溪最吸引遊客的天然資源是？", a: ["平地溫泉", "高山冰川", "鐘乳石洞"], correct: 0 },
+        { q: "宜蘭有一座造型特別的博物館叫做？", a: ["蘭陽博物館", "海洋博物館", "太空博物館"], correct: 0 },
+        { q: "宜蘭非常有名的農產品是？", a: ["三星蔥", "草莓", "西瓜"], correct: 0 }
+    ]}
 ];
 
 const CHANCE_EVENTS = [
@@ -199,7 +235,6 @@ class TravelGame {
         this.teamPos = [0, 0, 0, 0];
         this.teamMoney = [0, 0, 0, 0];
         this.currentIdx = 0;
-        this.oldPos = 0;
         this.load();
         this.init();
     }
@@ -239,8 +274,7 @@ class TravelGame {
         document.getElementById('roll-btn').disabled = true;
         const steps = Math.floor(Math.random() * 6) + 1;
         document.getElementById('dice-display').innerText = "🎲 " + steps;
-        this.oldPos = this.teamPos[this.currentIdx];
-        let p = this.oldPos;
+        let p = this.teamPos[this.currentIdx];
         for (let i = 0; i < steps; i++) {
             p = (p + 1) % TILE_COUNT;
             if (p === 0) {
@@ -251,7 +285,6 @@ class TravelGame {
             this.positionBuses();
             await new Promise(r => setTimeout(r, 400));
         }
-        // 時間鄰近：停止後立即觸發
         this.checkTile(p);
     }
 
@@ -267,12 +300,13 @@ class TravelGame {
         qArea.style.display = 'none'; pArea.style.display = 'none'; cBtn.style.display = 'none'; hintBox.style.display = 'none';
 
         if (d.type === "city") {
+            const randomQuiz = d.quizPool[Math.floor(Math.random() * d.quizPool.length)];
             document.getElementById('modal-title').innerText = `🏙️ ${d.name}`;
-            desc.innerText = d.quiz.q;
+            desc.innerText = randomQuiz.q;
             qArea.innerHTML = '';
-            d.quiz.a.forEach((opt, i) => {
+            randomQuiz.a.forEach((opt, i) => {
                 const b = document.createElement('button'); b.className = 'quiz-opt'; b.innerText = `${i+1}. ${opt}`;
-                b.onclick = () => this.handleQuiz(i === d.quiz.correct);
+                b.onclick = () => this.handleQuiz(i === randomQuiz.correct);
                 qArea.appendChild(b);
             });
             qArea.style.display = 'block';
@@ -281,7 +315,7 @@ class TravelGame {
             document.getElementById('modal-title').innerText = "✍️ 語法造句";
             desc.innerText = d.desc;
             hintBox.innerText = d.hint;
-            hintBox.style.display = 'block'; // 空間鄰近：題目下方直接顯示提示
+            hintBox.style.display = 'block';
             pArea.style.display = 'block';
             modal.style.display = 'flex';
         } else if (d.type === "chance") {
@@ -297,14 +331,25 @@ class TravelGame {
     }
 
     handleQuiz(isCorrect) {
-        if (isCorrect) { sound.win(); this.teamMoney[this.currentIdx] += 300; }
-        else { sound.lose(); let np = this.teamPos[this.currentIdx] - 2; this.teamPos[this.currentIdx] = np < 0 ? 0 : np; this.positionBuses(); }
+        if (isCorrect) {
+            sound.win();
+            this.teamMoney[this.currentIdx] += 300;
+            alert("答對了！獲得 $300 獎金！");
+        } else {
+            sound.lose();
+            alert("答錯了沒關係，留在原地！");
+        }
         this.closeModal();
     }
 
     handleManual(isCorrect) {
-        if (isCorrect) { sound.win(); this.teamMoney[this.currentIdx] += 500; }
-        else { sound.lose(); this.teamPos[this.currentIdx] = this.oldPos; this.positionBuses(); }
+        if (isCorrect) {
+            sound.win();
+            this.teamMoney[this.currentIdx] += 500;
+        } else {
+            sound.lose();
+            // 答錯不再退回，留在原地
+        }
         this.closeModal();
     }
 
@@ -323,9 +368,9 @@ class TravelGame {
         document.getElementById('turn-display').innerText = `輪到：${TEAMS[this.currentIdx].name}`;
         this.save();
     }
-    save() { localStorage.setItem('taiwanGameV6', JSON.stringify({p: this.teamPos, m: this.teamMoney, idx: this.currentIdx})); }
-    load() { const s = localStorage.getItem('taiwanGameV6'); if (s) { const d = JSON.parse(s); this.teamPos = d.p; this.teamMoney = d.m; this.currentIdx = d.idx; } }
-    reset() { localStorage.removeItem('taiwanGameV6'); location.reload(); }
+    save() { localStorage.setItem('taiwanGameV7', JSON.stringify({p: this.teamPos, m: this.teamMoney, idx: this.currentIdx})); }
+    load() { const s = localStorage.getItem('taiwanGameV7'); if (s) { const d = JSON.parse(s); this.teamPos = d.p; this.teamMoney = d.m; this.currentIdx = d.idx; } }
+    reset() { localStorage.removeItem('taiwanGameV7'); location.reload(); }
 }
 
 let game;
